@@ -1,3 +1,93 @@
-https://colab.research.google.com/drive/1PP6LLd9Cbnr92ZlS1TGlnwk67Vy_EQYM?usp=sharing
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import seaborn as sn
+import numpy as np
+import pandas as pd
+import math
+import datetime
+import platform
+import keras
 
-Collab link
+mnist_dataset = tf.keras.datasets.mnist
+(x_train, y_train), (x_test, y_test) = mnist_dataset.load_data()
+
+print('x_train:', x_train.shape)
+print('y_train:', y_train.shape)
+print('x_test:', x_test.shape)
+print('y_test:', y_test.shape)
+
+pd.DataFrame(x_train[0])
+plt.imshow(x_train[0], cmap=plt.cm.binary)
+plt.show()
+
+numbers_to_display = 25
+num_cells = math.ceil(math.sqrt(numbers_to_display))
+plt.figure(figsize=(10,10))
+for i in range(numbers_to_display):
+    plt.subplot(num_cells, num_cells, i+1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.imshow(x_train[i], cmap=plt.cm.binary)
+    plt.xlabel(y_train[i])
+plt.show()
+x_train_normalized = x_train / 255
+x_test_normalized = x_test / 255
+
+plt.imshow(x_train_normalized[0], cmap=plt.cm.binary)
+plt.show()
+
+model = tf.keras.models.Sequential()
+
+# Input layers.
+model.add(tf.keras.layers.Flatten(input_shape=x_train_normalized.shape[1:]))
+model.add(tf.keras.layers.Dense(
+    units=128,
+    activation=tf.keras.activations.relu,
+    kernel_regularizer=tf.keras.regularizers.l2(0.002)
+))
+
+# Hidden layers.
+model.add(tf.keras.layers.Dense(
+    units=128,
+    activation=tf.keras.activations.relu,
+    kernel_regularizer=tf.keras.regularizers.l2(0.002)
+))
+
+# Output layers.
+model.add(tf.keras.layers.Dense(
+    units=10,
+    activation=tf.keras.activations.softmax
+))
+
+model.summary()
+
+tf.keras.utils.plot_model(
+    model,
+    show_shapes=True,
+    show_layer_names=True,
+)
+
+adam_optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+model.compile(
+    optimizer=adam_optimizer,
+    loss=tf.keras.losses.sparse_categorical_crossentropy,
+    metrics=['accuracy']
+)
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+
+training_history = model.fit(
+    x_train_normalized,
+    y_train,
+    epochs=10,
+    validation_data=(x_test_normalized, y_test),
+    callbacks=[tensorboard_callback]
+)
+plt.xlabel('Epoch Number')
+plt.ylabel('Accuracy')
+plt.plot(training_history.history['accuracy'], label='training set')
+plt.plot(training_history.history['val_accuracy'], label='test set')
+plt.legend()
+train_loss, train_accuracy = model.evaluate(x_train_normalized, y_train)
+validation_loss, validation_accuracy = model.evaluate(x_test_normalized, y_test)
